@@ -6,31 +6,34 @@ import { MdInfoOutline } from "react-icons/md";
 interface Props extends HTMLAttributes<HTMLDivElement> {
   body: string | JSX.Element;
   tipMinWidth?: string;
-  tipTriggerPosition?: "position-fixed";
+  tipTriggerPosition?: "fixed" | "relative";
   tipPosition?: "bottom" | "top" | "left" | "right";
   innerClassName?: string;
-  textColor?: string;
-  bgColor?: string;
-  theme?: "white";
+  theme?: "blue" | "white";
 }
 const Tooltip: FC<Props> = ({
   body,
   children,
   className,
-  tipTriggerPosition = "position-relative",
+  tipTriggerPosition = "relative",
   tipMinWidth = "140px",
   tipPosition = "bottom",
   innerClassName,
-  textColor = "white",
-  bgColor = "#029dd1",
-  theme,
+  theme = "blue",
   ...otherProps
 }) => {
+  let bgColor: string | null = null;
+  let textColor: string | null = null;
+  if (theme === "white") {
+    bgColor = "white";
+    textColor = "black";
+  }
+
   if (!children) children = <MdInfoOutline style={{ color: "#029dd1" }} />;
   return (
     <>
       <div
-        className={`tiptrigger ${className} ${tipTriggerPosition}`}
+        className={`tiptrigger position-${tipTriggerPosition} ${className}`}
         {...otherProps}
       >
         {children}
