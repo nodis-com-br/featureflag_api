@@ -1,0 +1,52 @@
+name: k8s-workload.yml
+
+on:
+  workflow_dispatch: ~
+  push:
+    branches:
+      - develop
+      - release/*
+      - hotfix/*
+      - master
+      - main
+      - legacy/*
+  pull_request:
+    branches:
+      - develop
+      - release/*
+      - master
+      - main
+      - legacy/*
+
+jobs:
+  build_metadata:
+    uses: nodis-com-br/gha_workflow-jobs/.github/workflows/build_metadata.yaml@master
+  analize_code:
+    uses: nodis-com-br/gha_workflow-jobs/.github/workflows/analize_code.yaml@master
+    needs:
+      - build_metadata
+    secrets:
+      pypi_addr: ${{ secrets.PYPI_ADDR }}
+  build_artifact:
+    uses: nodis-com-br/gha_workflow-jobs/.github/workflows/publish_private_image.yaml@master
+    needs:
+      - build_metadata
+    secrets:
+      pypi_addr: ${{ secrets.PYPI_ADDR }}
+  deploy_artifact:
+    uses: nodis-com-br/gha_workflow-jobs/.github/workflows/deploy_workload.yaml@master
+    needs:
+      - build_artifact
+    secrets:
+      openvpn_config: ${{ secrets.OPENVPN_CONFIG }}
+      vault_addr: ${{ secrets.VAULT_ADDR }}
+      vault_approle_role_id: ${{ secrets.VAULT_APPROLE_ROLE_ID }}
+      vault_approle_secret_id: ${{ secrets.VAULT_APPROLE_SECRET_ID }}
+      pypi_addr: ${{ secrets.PYPI_ADDR }}
+  revert_bump:
+    uses: nodis-com-br/gha_workflow-jobs/.github/workflows/revert_bump.yaml@master
+    needs:
+      - build_artifact
+    if: always()
+    with:
+      build_result: ${{ needs.build_artifact.result }}
