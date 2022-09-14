@@ -1,0 +1,55 @@
+name: k8s-workload
+
+on:
+  workflow_dispatch: ~
+  push:
+    branches:
+      - develop
+      - release/*
+      - hotfix/*
+      - master
+      - main
+      - legacy/*
+  pull_request:
+    branches:
+      - develop
+      - release/*
+      - master
+      - main
+      - legacy/*
+
+jobs:
+  get_metadata:
+    uses: nodis-com-br/gha-workflows/.github/workflows/get-metadata.yaml@master
+  test_code:
+    uses: nodis-com-br/gha-workflows/.github/workflows/testing.yaml@master
+    needs:
+      - get_metadata
+    secrets:
+      openvpn_config: ${{ secrets.OPENVPN_CONFIG }}
+      vault_addr: ${{ secrets.VAULT_ADDR }}
+      vault_approle_role_id: ${{ secrets.VAULT_APPROLE_ROLE_ID }}
+      vault_approle_secret_id: ${{ secrets.VAULT_APPROLE_SECRET_ID }}
+  publish_artifact:
+    uses: nodis-com-br/gha-workflows/.github/workflows/publish-docker-image.yaml@master
+    needs:
+      - get_metadata
+    secrets:
+      openvpn_config: ${{ secrets.OPENVPN_CONFIG }}
+      gh_packages_token: ${{ secrets.GH_PACKAGES_TOKEN }}
+  deploy_artifact:
+    uses: nodis-com-br/gha-workflows/.github/workflows/deploy-k8s-workload.yaml@master
+    needs:
+      - publish_artifact
+    secrets:
+      openvpn_config: ${{ secrets.OPENVPN_CONFIG }}
+      vault_addr: ${{ secrets.VAULT_ADDR }}
+      vault_approle_role_id: ${{ secrets.VAULT_APPROLE_ROLE_ID }}
+      vault_approle_secret_id: ${{ secrets.VAULT_APPROLE_SECRET_ID }}
+  revert_bump:
+    uses: nodis-com-br/gha-workflows/.github/workflows/revert-bump.yaml@master
+    needs:
+      - publish_artifact
+    if: always()
+    with:
+      build_result: ${{ needs.publish_artifact.result }}
